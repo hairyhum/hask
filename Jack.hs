@@ -1,6 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Jack where
-import Language.Haskell.SealModule
+import           Language.Haskell.SealModule
 
 data Tell = Lie | CanLie | Truth
 data Sanity = Insane | Sane
@@ -14,14 +14,14 @@ type AceSanity = Sanity
 type TwoSanity = Sanity
 type Config = (AceSanity, TwoSanity, Bool)
 
-think_about :: Card -> [Card]
-think_about Three = [Ace]
-think_about Seven = [Five]
-think_about Six = [Ace,Two]
-think_about Four = [Three,Two]
-think_about Five = [Ace,Four]
-think_about Jack = [Six,Seven]
-think_about _ = []
+thinkAbout :: Card -> [Card]
+thinkAbout Three = [Ace]
+thinkAbout Seven = [Five]
+thinkAbout Six = [Ace,Two]
+thinkAbout Four = [Three,Two]
+thinkAbout Five = [Ace,Four]
+thinkAbout Jack = [Six,Seven]
+thinkAbout _ = []
 
 aceSanity :: Config -> Sanity
 aceSanity (ace,_,_) = ace
@@ -44,7 +44,7 @@ instance Show Card where
     show Five = "Five"
     show Six = "Six"
     show Seven = "Seven"
-    show Jack = "Jack"
+    show Jack  = "Jack"
 
 instance Show Sanity where
     show Sane = "Sane"
@@ -60,8 +60,8 @@ sealModule [d|
     config = sealedParam
 
     insane :: Card -> Bool
-    insane Ace = (aceSanity config) `is` Insane
-    insane Two = (twoSanity config) `is` Insane
+    insane Ace = aceSanity config `is` Insane
+    insane Two = twoSanity config `is` Insane
     insane card =
         let judge = hardJudge config
         in if judge
@@ -74,16 +74,16 @@ sealModule [d|
     only :: Card -> Tell -> Bool
     card `only` tell =
         let op = opinions card tell
-        in foldl (&&) True op
+        in and op
 
     can :: Card -> Tell -> Bool
     card `can` tell =
         let op = opinions card tell
-        in foldl (||) False op
+        in or op
 
     opinions :: Card -> Tell -> [Bool]
     opinions card tell =
-        map (\other -> has card tell About other) $ think_about card
+        map (has card tell About) $ thinkAbout card
 
     has :: Card -> Tell -> About -> Card -> Bool
     has card Lie About other =
@@ -107,7 +107,7 @@ sealModule [d|
     card `think` other =
         card `not_think` other
 
-    same :: As -> Card -> (Sanity -> Bool)
+    same :: As -> Card -> Sanity -> Bool
     same As card Insane = insane card
     same As card Sane = sane card
 
@@ -121,22 +121,20 @@ sealModule [d|
 
     sanity card =
         if sane card then Sane else Insane
-
     |]
 
-foreach = flip mapM_
 
 sanities =
     let configs = [(Sane,Sane,True), (Sane,Insane,True), (Insane,Sane,True),(Insane,Insane,True),
                     (Sane,Sane,False), (Sane,Insane,False), (Insane,Sane,False),(Insane,Insane,False)]
-    in foreach configs show_sanities
+    in forM_  showSanities configs
 
-show_sanities config =
+showSanities config =
     do let cards = [Ace , Two , Three , Four , Five , Six , Seven , Jack]
        putStrLn "========="
        putStrLn (if hardJudge config then "Hard Judge: \n" else "Soft Judge: \n")
-       foreach cards (\card -> print_sanity card (sanity config card))
+       forM_ (\card -> printSanity card (sanity config card)) cards
 
-print_sanity :: Card -> Sanity -> IO ()
-print_sanity card sanity =
+printSanity :: Card -> Sanity -> IO ()
+printSanity card sanity =
     putStrLn (show card ++ " is " ++ show sanity)

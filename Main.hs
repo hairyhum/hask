@@ -1,27 +1,36 @@
-{-# LANGUAGE PackageImports, BangPatterns, QuasiQuotes #-}
+{-# LANGUAGE RankNTypes #-}
 module Main where
 
-import Codec.Picture
-import System.Environment
-import Data.ByteString
+import Codec.Picture 
+import Codec.Picture.Types 
 
-main = do
-    args <- getArgs
-    case args of
-        [input, out] -> run input out
-        _            -> print "Fuck"
+--main = do
+--    args <- getArgs
+--    case args of
+--        [input, out] -> run input out
+--        _            -> print "Fuck"
 
-run fileIn fileOut = do
-    image <- readPng fileIn
---    (width, height) <- imageSize image
-    --map (\x -> process_line x image) [0..width]
-    print $ either (id) (encodeImg) image
+--run :: String -> String -> IO ()
+--run fileIn fileOut = do
+--    image <- readPng fileIn
+--    either 
+--        putStrLn
+--        (withImage (writePng fileOut . extractLumaPlane))
+--        image
+
+withImg :: (forall a. Pixel a => Image a -> b) -> DynamicImage -> b
+withImg fun (ImageY8 i) = fun i
+withImg fun (ImageYA8 i) = fun i  
+withImg fun (ImageRGB8 i) = fun i
+withImg fun (ImageRGBA8 i) = fun i  
+withImg fun (ImageYCbCr8 i) = fun i
 
 
 
-encodeImg :: DynamicImage -> String
-encodeImg a =
-    let encoded = encodeDynamicPng a
-    in either (id) (show) encoded
+
+        
+
+
+
 
 
